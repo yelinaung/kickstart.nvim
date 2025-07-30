@@ -1166,21 +1166,6 @@ function InsertPDB()
 end
 vim.api.nvim_set_keymap('n', '<Leader>p', ':lua InsertPDB()<CR>', { silent = true })
 
--- from https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md#sourcery
--- require('lspconfig').sourcery.setup {
---   init_options = {
---     --- The Sourcery token for authenticating the user.
---     --- This is retrieved from the Sourcery website and must be
---     --- provided by each user. The extension must provide a
---     --- configuration option for the user to provide this value.
---     token = 'user_ObeplwXKyW2A8GwbHsZDNQiqk7t3EV7p9fk33dCsdv9Y41qpWiwYDIPXvPY',
---     --- The extension's name and version as defined by the extension.
---     extension_version = 'vim.lsp',
---     --- The editor's name and version as defined by the editor.
---     editor_version = 'vim',
---   },
--- }
-
 -- Remap for dealing with word wrap
 vim.keymap.set('n', 'k', "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
 vim.keymap.set('n', 'j', "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
