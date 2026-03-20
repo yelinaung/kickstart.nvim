@@ -188,6 +188,7 @@ vim.diagnostic.config {
 }
 
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+vim.keymap.set('n', '<leader>Q', '<cmd>cclose<CR>', { desc = 'Close diagnostic [Q]uickfix list' })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -195,7 +196,12 @@ vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagn
 --
 -- NOTE: This won't work in all terminal emulators/tmux/etc. Try your own mapping
 -- or just use <C-\><C-n> to exit terminal mode
-vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
+-- vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
+
+-- Map Ctrl-q to quit the current window (will error on unsaved changes)
+vim.keymap.set('n', '<C-q>', '<Cmd>q<CR>', {
+  desc = 'Quit current window',
+})
 
 -- TIP: Disable arrow keys in normal mode
 -- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
@@ -207,10 +213,10 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 --  Use CTRL+<hjkl> to switch between windows
 --
 --  See `:help wincmd` for a list of all window commands
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+-- vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
+-- vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
+-- vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
+-- vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
 -- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
 -- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
@@ -304,14 +310,71 @@ require('lazy').setup({
   -- after the plugin has been loaded as `require(MODULE).setup(opts)`.
   { 'numToStr/Comment.nvim', opts = {} },
 
-  'nvim-tree/nvim-tree.lua',
-  'alexghergh/nvim-tmux-navigation',
+  {
+    'nvim-tree/nvim-tree.lua',
+    cmd = { 'NvimTreeToggle', 'NvimTreeFocus' },
+    opts = {
+      update_focused_file = {
+        enable = true,
+        update_cwd = true,
+        ignore_list = {},
+      },
+      sort_by = 'case_sensitive',
+      renderer = {
+        group_empty = true,
+      },
+      filters = {
+        dotfiles = false,
+      },
+    },
+  },
+  {
+    'alexghergh/nvim-tmux-navigation',
+    event = 'VeryLazy',
+    opts = {
+      disable_when_zoomed = true,
+      keybindings = {
+        left = '<C-h>',
+        down = '<C-j>',
+        up = '<C-k>',
+        right = '<C-l>',
+        last_active = '<C-\\>',
+        next = '<C-Space>',
+      },
+    },
+  },
   'itspriddle/vim-shellcheck',
   'pedrohdz/vim-yaml-folds',
   'anuvyklack/pretty-fold.nvim',
-  'nvim-neotest/nvim-nio',
   'mg979/vim-visual-multi', -- vim-visual-multi
-  'karb94/neoscroll.nvim',
+  {
+    'karb94/neoscroll.nvim',
+    event = 'VeryLazy',
+    opts = {
+      mappings = {
+        '<C-u>',
+        '<C-d>',
+        '<C-b>',
+        '<C-f>',
+        '<C-y>',
+        '<C-e>',
+        'zt',
+        'zz',
+        'zb',
+      },
+      hide_cursor = true,
+      stop_eof = true,
+      respect_scrolloff = false,
+      cursor_scrolls_alone = true,
+      duration_multiplier = 1.0,
+      easing = 'linear',
+      performance_mode = false,
+      ignored_events = {
+        'WinScrolled',
+        'CursorMoved',
+      },
+    },
+  },
 
   { -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
@@ -323,6 +386,10 @@ require('lazy').setup({
       -- delay between pressing a key and opening which-key (milliseconds)
       delay = 0,
       icons = { mappings = vim.g.have_nerd_font },
+
+      plugins = {
+        registers = false,
+      },
 
       -- Document existing key chains
       spec = {
@@ -611,8 +678,8 @@ require('lazy').setup({
       ---@type table<string, vim.lsp.Config>
       local servers = {
         -- clangd = {},
-        -- gopls = {},
-        -- pyright = {},
+        gopls = {},
+        pyright = {},
         -- rust_analyzer = {},
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
@@ -714,6 +781,12 @@ require('lazy').setup({
       },
     },
   },
+  -- Rust
+  {
+    'mrcjkb/rustaceanvim',
+    version = '^6', -- Recommended
+    lazy = false, -- This plugin is already lazy
+  },
 
   -- Golang
   {
@@ -723,10 +796,21 @@ require('lazy').setup({
       'neovim/nvim-lspconfig',
       'nvim-treesitter/nvim-treesitter',
     },
-    config = function()
-      require('go').setup()
+    opts = {
+      -- lsp_keymaps = false,
+      -- other options
+    },
+    config = function(lp, opts)
+      require('go').setup(opts)
+      local format_sync_grp = vim.api.nvim_create_augroup('GoFormat', {})
+      vim.api.nvim_create_autocmd('BufWritePre', {
+        pattern = '*.go',
+        callback = function()
+          require('go.format').goimports()
+        end,
+        group = format_sync_grp,
+      })
     end,
-    event = { 'CmdlineEnter' },
     ft = { 'go', 'gomod' },
     build = ':lua require("go.install").update_all_sync()', -- if you need to install/update all binaries
   },
@@ -735,23 +819,33 @@ require('lazy').setup({
     'mfussenegger/nvim-dap',
     dependencies = {
       'rcarriga/nvim-dap-ui',
+      'nvim-neotest/nvim-nio',
+    },
+    keys = {
+      {
+        '<leader>db',
+        function()
+          require('dap').toggle_breakpoint()
+        end,
+        desc = '[D]ebug: Toggle [B]reakpoint',
+      },
+      {
+        '<leader>dc',
+        function()
+          require('dap').continue()
+        end,
+        desc = '[D]ebug: [C]ontinue',
+      },
     },
     config = function()
-      require('go').setup()
+      require('dapui').setup()
     end,
   },
-
-  {
-    'supermaven-inc/supermaven-nvim',
-    config = function()
-      require('supermaven-nvim').setup {}
-    end,
-  },
-
   { -- Autocompletion
     'saghen/blink.cmp',
     event = 'VimEnter',
     version = '1.*',
+    build = 'cargo +nightly build --release',
     dependencies = {
       -- Snippet Engine
       {
@@ -906,7 +1000,7 @@ require('lazy').setup({
     branch = 'main',
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter-intro`
     config = function()
-      local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+      local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'go' }
       require('nvim-treesitter').install(parsers)
       vim.api.nvim_create_autocmd('FileType', {
         callback = function(args)
@@ -919,11 +1013,6 @@ require('lazy').setup({
           if not vim.treesitter.language.add(language) then return end
           -- enables syntax highlighting and other treesitter features
           vim.treesitter.start(buf, language)
-
-          -- enables treesitter based folds
-          -- for more info on folds see `:help folds`
-          -- vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
-          -- vim.wo.foldmethod = 'expr'
 
           -- enables treesitter based indentation
           vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
@@ -980,72 +1069,31 @@ require('lazy').setup({
   },
 })
 
-require('neoscroll').setup {
-  mappings = { -- Keys to be mapped to their corresponding default scrolling animation
-    '<C-u>',
-    '<C-d>',
-    '<C-b>',
-    '<C-f>',
-    '<C-y>',
-    '<C-e>',
-    'zt',
-    'zz',
-    'zb',
-  },
-  hide_cursor = true, -- Hide cursor while scrolling
-  stop_eof = true, -- Stop at <EOF> when scrolling downwards
-  respect_scrolloff = false, -- Stop scrolling when the cursor reaches the scrolloff margin of the file
-  cursor_scrolls_alone = true, -- The cursor will keep on scrolling even if the window cannot scroll further
-  duration_multiplier = 1.0, -- Global duration multiplier
-  easing = 'linear', -- Default easing function
-  pre_hook = nil, -- Function to run before the scrolling animation starts
-  post_hook = nil, -- Function to run after the scrolling animation ends
-  performance_mode = false, -- Disable "Performance Mode" on all buffers.
-  ignored_events = { -- Events ignored while scrolling
-    'WinScrolled',
-    'CursorMoved',
-  },
-}
-
-require('nvim-tree').setup {
-  update_focused_file = {
-    enable = true,
-    update_cwd = true,
-    ignore_list = {},
-  },
-  sort_by = 'case_sensitive',
-  renderer = {
-    group_empty = true,
-  },
-  filters = {
-    dotfiles = false,
-  },
-}
-
-require('nvim-tmux-navigation').setup {
-  disable_when_zoomed = true, -- defaults to false
-  keybindings = {
-    left = '<C-h>',
-    down = '<C-j>',
-    up = '<C-k>',
-    right = '<C-l>',
-    last_active = '<C-\\>',
-    next = '<C-Space>',
-  },
-}
-
 -- Map <C-p> to Telescope's find_files command
 vim.api.nvim_set_keymap('n', '<C-p>', '<cmd>Telescope find_files<CR>', { noremap = true, silent = true })
 
-require('lspconfig').gopls.setup {
-  gopls_cmd = { 'home/yelinaung/go/bin/gopls' },
-  fillstruct = 'gopls',
-  dap_debug = true,
-  dap_debug_gui = true,
+vim.lsp.config.gopls = {
+  cmd = { 'gopls' },
+  filetypes = { 'go', 'gomod', 'gowork', 'gotmpl' },
+  root_markers = { 'go.work', 'go.mod', '.git' },
+  settings = {
+    gopls = {
+      analyses = {
+        unusedparams = true,
+      },
+      staticcheck = true,
+      gofumpt = true,
+    },
+  },
 }
 
-require('go').setup()
-require('dapui').setup()
+-- Enable gopls for Go files
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'go',
+  callback = function()
+    vim.lsp.enable 'gopls'
+  end,
+})
 
 -- Automatically fold all code when a buffer is entered
 vim.api.nvim_exec(
@@ -1102,6 +1150,46 @@ function InsertPDB()
 end
 vim.api.nvim_set_keymap('n', '<Leader>p', ':lua InsertPDB()<CR>', { silent = true })
 
+-- Create an autocommand group to ensure your autocommands are cleared on reload
+local runGroup = vim.api.nvim_create_augroup('RunCommands', { clear = true })
+
+-- Autocommand for Go files
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'go',
+  group = runGroup,
+  callback = function()
+    -- Sets the keymap only for the current buffer
+    vim.keymap.set('n', '<Leader>r', '<Cmd>GoRun<CR>', { silent = true, buffer = true })
+  end,
+})
+
+-- Autocommand for Rust files
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'rust',
+  group = runGroup, -- Make sure 'runGroup' is defined
+  callback = function()
+    -- Find the full path to Cargo.toml by searching up from the current file.
+    -- The '.;' tells it to search the current directory and all parent directories.
+    local manifest_path = vim.fn.findfile('Cargo.toml', '.;')
+
+    -- If no Cargo.toml was found, print an error and stop.
+    if manifest_path == '' or manifest_path == nil then
+      print 'Error: Could not find Cargo.toml in parent directories.'
+      return
+    end
+
+    -- Build the command using the correctly found manifest path.
+    local command = string.format('vsplit | terminal cargo test --manifest-path %s -- --show-output --include-ignored', manifest_path)
+
+    -- Map <Leader>r to execute the command. This map is local to the buffer.
+    vim.keymap.set('n', '<Leader>r', '<Cmd>' .. command .. '<CR>', {
+      noremap = true,
+      silent = true,
+      buffer = true,
+      desc = 'Run cargo test for the current project',
+    })
+  end,
+})
 -- Remap for dealing with word wrap
 vim.keymap.set('n', 'k', "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
 vim.keymap.set('n', 'j', "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
@@ -1120,3 +1208,10 @@ vim.cmd [[
     autocmd WinEnter,VimEnter * :silent! call matchadd('Todo', 'Todo', 'TODO', 'FIXME', -1)
   augroup END
 ]]
+
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'python',
+  callback = function()
+    vim.lsp.enable 'pyright'
+  end,
+})
